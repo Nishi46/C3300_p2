@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pit Stop Efficiency vs. Driver Performance and Constructor Pit Stops</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v1.min.js"></script>
+    <style>
+        #visualization-container {
+            width: 100%;
+            height: 600px;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="visualization-container"></div>
+    <div id="tooltip" class="tooltip" style="opacity: 0;"></div>
+
+    <script>
+        // Set up SVG dimensions and map projection
+        const width = 960;
+        const height = 600;
+
+        const svg = d3.select("#visualization-container")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const projection = d3.geoAlbersUsa()
+            .scale(1000)
+            .translate([width / 2, height / 2]);
+
+        const path = d3.geoPath().projection(projection);
+
+        // Tooltip setup
+        const tooltip = d3.select("#tooltip");
+
+        // Load TopoJSON map data and CSV polling data
+        Promise.all([
+            d3.json("https://d3js.org/us-10m.v1.json"), // TopoJSON for US map
+            d3.csv("data/polling_places.csv") // Replace with actual path to polling.csv
+        ]).then(([us, pollingData]) => {
+            // Convert TopoJSON to GeoJSON and add states
+            svg.append("g")
+                .selectAll("path")
+                .data(topojson.feature(us, us.objects.states).features)
+                .join("path")
+                .attr("fill", "#ddd")
+                .attr("d", path)
+                .attr("stroke", "#333");
+
+            // Process polling data to add interactivity
+            pollingData.forEach(d => {
+                d.latitude = +d.latitude;
+                d.longitude = +d.longitude;
+            });
+
+            svg.append("g")
+                .selectAll("circle")
+                .data(pollingData)
+                .join("circle")
+                .attr("cx", d => projection([d.longitude, d.latitude])[0])
+                .attr("cy", d => projection([d.longitude, d.latitude])[1])
+                .attr("r", 4)
+                .attr("fill", "red")
+                .attr("opacity", 0.6)
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`Location: ${d.name}<br>Address: ${d.address}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 30) + "px");
+                })
+                .on("mousemove", (event) => {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 30) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.transition().duration(200).style("opacity", 0);
+                });
+
+        }).catch(error => console.error("Error loading data:", error));
+    </script>
+</body>
+</html>
