@@ -3,90 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pit Stop Efficiency vs. Driver Performance and Constructor Pit Stops</title>
-    <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="https://d3js.org/topojson.v1.min.js"></script>
+    <title>Polling Locations Choropleth Map</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
     <style>
-        #visualization-container {
-            width: 100%;
-            height: 600px;
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .county {
+            stroke: #333;
+            stroke-width: 0.5;
         }
         .tooltip {
             position: absolute;
-            padding: 8px;
-            background: #fff;
+            background: white;
             border: 1px solid #ccc;
-            font-size: 0.9em;
+            padding: 5px;
+            border-radius: 5px;
             pointer-events: none;
+            opacity: 0;
+        }
+        .tooltip-box {
+            width: 120px;
+            height: auto;
+            background-color: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        #polling-thresholds {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div id="visualization-container"></div>
-    <div id="tooltip" class="tooltip" style="opacity: 0;"></div>
+    <svg id="choropleth" height="600" width="960"></svg>
+    <ul id="polling-thresholds"></ul>
+    <div class="tooltip" id="tooltip"></div>
 
     <script>
-        // Set up SVG dimensions and map projection
-        const width = 960;
-        const height = 600;
+        const width = 960, height = 600;
+        const svg = d3.select("#choropleth").attr("width", width).attr("height", height);
 
-        const svg = d3.select("#visualization-container")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
-
-        const projection = d3.geoAlbersUsa()
-            .scale(1000)
-            .translate([width / 2, height / 2]);
-
-        const path = d3.geoPath().projection(projection);
-
-        // Tooltip setup
-        const tooltip = d3.select("#tooltip");
-
-        // Load TopoJSON map data and CSV polling data
         Promise.all([
-            d3.json("https://d3js.org/us-10m.v1.json"), // TopoJSON for US map
-            d3.csv("data/polling_places.csv") // Replace with actual path to polling.csv
-        ]).then(([us, pollingData]) => {
-            // Convert TopoJSON to GeoJSON and add states
-            svg.append("g")
-                .selectAll("path")
-                .data(topojson.feature(us, us.objects.states).features)
-                .join("path")
-                .attr("fill", "#ddd")
+            d3.json("data/counties-10m.json"), // Load the TopoJSON data
+            d3.csv("data/polling_places.csv") // Load polling location data
+        ]).then(([topoData, pollingData]) => {
+
+            const counties = topojson.feature(topoData, topoData.objects.counties);
+            const locationCounts = d3.rollup(
+                pollingData,
+                v => v.length,
+                d => d.county_name
+            );
+
+            const countsArray = Array.from(locationCounts.values());
+            const colors = ["#ffe9bd", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"];
+            const colorScale = d3.scaleQuantile()
+                .domain(countsArray)
+                .range(colors);
+
+            const projection = d3.geoAlbersUsa().fitSize([width, height], counties);
+            const path = d3.geoPath().projection(projection);
+
+            const tooltip = d3.select("#tooltip");
+
+            svg.selectAll("path")
+                .data(counties.features)
+                .enter().append("path")
                 .attr("d", path)
-                .attr("stroke", "#333");
+                .attr("class", "county")
+                .attr("fill", d => {
+                    const count = locationCounts.get(d.properties.name) || 0;
+                    return colorScale(count);
+                })
+                .on("mouseover", function(event, d) {
+                    const countyName = d.properties.name;
+                    const count = locationCounts.get(countyName) || 0;
 
-            // Process polling data to add interactivity
-            pollingData.forEach(d => {
-                d.latitude = +d.latitude;
-                d.longitude = +d.longitude;
-            });
-
-            svg.append("g")
-                .selectAll("circle")
-                .data(pollingData)
-                .join("circle")
-                .attr("cx", d => projection([d.longitude, d.latitude])[0])
-                .attr("cy", d => projection([d.longitude, d.latitude])[1])
-                .attr("r", 4)
-                .attr("fill", "red")
-                .attr("opacity", 0.6)
-                .on("mouseover", (event, d) => {
                     tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`Location: ${d.name}<br>Address: ${d.address}`)
+                    tooltip.html(`<div class="tooltip-box">
+                                    <strong>${countyName}</strong><br>
+                                    Polling Locations: ${count}
+                                  </div>`)
                         .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 30) + "px");
+                        .style("top", (event.pageY - 28) + "px");
+
+                    d3.select(this)
+                        .attr("stroke", "black")
+                        .attr("stroke-width", 2);
                 })
-                .on("mousemove", (event) => {
-                    tooltip.style("left", (event.pageX + 10) + "px")
-                           .style("top", (event.pageY - 30) + "px");
-                })
-                .on("mouseout", () => {
+                .on("mouseout", function() {
                     tooltip.transition().duration(200).style("opacity", 0);
+                    d3.select(this)
+                        .attr("stroke", "#333")
+                        .attr("stroke-width", 0.5);
                 });
 
+            const thresholds = colorScale.quantiles();
+            const ul = d3.select("#polling-thresholds");
+
+            ul.selectAll("li")
+                .data(thresholds)
+                .enter()
+                .append("li")
+                .text(threshold => `Up to ${d3.format(",.0f")(threshold)} polling locations`)
+                .style("color", (d, i) => colors[i]);
         }).catch(error => console.error("Error loading data:", error));
     </script>
 </body>
