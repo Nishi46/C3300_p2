@@ -36,15 +36,74 @@
             border-radius: 5px;
         }
 
-        #polling-thresholds {
-            margin-top: 20px;
+        #content-container {
+            display: flex;
+            padding: 20px;
         }
+    
+        #choropleth {
+            flex: 1; 
+        }
+    
+        #filter-container {
+        position: fixed;
+        right: 400px; 
+        top: 150px; 
+        max-width: 250px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        }
+        #polling-thresholds {
+            list-style-type: none;
+            padding: 0;
+            width: 100%; 
+        }
+    
+        #polling-thresholds li {
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            background-color: #f7f7f7;
+            width: 100%; 
+            margin-bottom: 12px;
+        }
+    
+        #polling-thresholds li.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+    
+        #clear-filters {
+            padding: 9px 20px;
+            background-color: #f44336;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        
     </style>
 </head>
 
 <body>
-    <svg id="choropleth" height="600" width="960"></svg>
-    <ul id="polling-thresholds"></ul>
+    <h2 style="text-align: center;">Polling Locations Choropleth Map</h2>
+    <div id="content-container">
+        <svg id="choropleth" height="600" width="960"></svg>
+        <div id="filter-container">
+            <h3 style="text-align: center;">Filter by Polling Locations</h3>
+            <ul id="polling-thresholds"></ul>
+            <div id="clear-filters">Clear Filters</div>
+        </div>
+    </div>
     <div class="tooltip" id="tooltip"></div>
 
     <script>
@@ -114,7 +173,39 @@
                 .enter()
                 .append("li")
                 .text(threshold => `Up to ${d3.format(",.0f")(threshold)} polling locations`)
-                .style("color", (d, i) => colors[i]);
+                .style("color", (d, i) => colors[i])
+                .on("click", function(event, threshold) {
+                    d3.select(this).classed("selected", !d3.select(this).classed("selected"));
+
+                    const selectedThresholds = getSelectedThresholds();
+                    highlightCounties(selectedThresholds);
+                });
+            // Function to highlight counties based on selected thresholds
+            function highlightCounties(selectedThresholds) {
+                svg.selectAll("path")
+                    .attr("fill", function(d) {
+                        const count = locationCounts.get(d.properties.name) || 0;
+                        const shouldHighlight = selectedThresholds.some(range => count < range);
+
+                        return shouldHighlight ? colorScale(count) : "#f0f0f0";
+                    });
+            }
+
+            // Function to get selected threshold values
+            function getSelectedThresholds() {
+                const selectedItems = d3.selectAll("#polling-thresholds .selected").data();
+                return selectedItems.map(item => parseFloat(item));
+            }
+
+            // Adding functionality for Clear Filters button
+            d3.select("#clear-filters").on("click", function() {
+                d3.selectAll("#polling-thresholds li").classed("selected", false);
+                svg.selectAll("path")
+                    .attr("fill", function(d) {
+                        const count = locationCounts.get(d.properties.name) || 0;
+                        return colorScale(count);
+                    });
+            });
 
             const zoom = d3.zoom()
                 .scaleExtent([1, 8])
