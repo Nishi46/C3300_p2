@@ -38,7 +38,7 @@
 
         #content-container {
             display: flex;
-            padding: 20px;
+            padding:40px;
         }
     
         #choropleth {
@@ -46,15 +46,16 @@
         }
     
         #filter-container {
-        position: fixed;
-        right: 400px; 
-        top: 150px; 
-        max-width: 250px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        }
+            position: relative;
+            left: 0;
+            top: 0;
+            max-width: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin-right: 40px;
+            padding: 10px;}
         #polling-thresholds {
             list-style-type: none;
             padding: 0;
@@ -97,12 +98,14 @@
 <body>
     <h2 style="text-align: center;">Polling Locations Choropleth Map</h2>
     <div id="content-container">
-        <svg id="choropleth" height="600" width="960"></svg>
         <div id="filter-container">
             <h3 style="text-align: center;">Filter by Polling Locations</h3>
             <ul id="polling-thresholds"></ul>
             <div id="clear-filters">Clear Filters</div>
+       
         </div>
+        <svg id="choropleth" height="600" width="960"></svg>
+
     </div>
     <div class="tooltip" id="tooltip"></div>
 
