@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024 Election Data Hub</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #002868;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            font-style: italic;
+            margin-top: 10px;
+        }
+        .map-links {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+        }
+        .map-link {
+            display: inline-block;
+            padding: 15px 25px;
+            background-color: #bf0a30;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-align: center;
+            width: 40%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .map-link:hover {
+            background-color: #8b0000;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        .description {
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1> Election Data Hub</h1>
+        <p class="subtitle">Explore Interactive Choropleth Maps</p>
+    </header>
+    <div class="container">
+        <div class="map-links">
+            <a href="election.html" class="map-link">2020 Election Results Map</a>
+            <a href="polling.html" class="map-link">2024 Polling Locations Map</a>
+        </div>
+        <div class="description">
+            <h2>About Our Election Maps</h2>
+            <p>Welcome to the Election Data Hub. Here you can access two interactive choropleth maps that provide valuable insights into the election process:</p>
+            <ul>
+                <li><strong>Election Results Map:</strong> Visualize vote differences, Democratic votes, and Republican votes across regions.</li>
+                <li><strong>Polling Locations Map:</strong> Explore the distribution of polling locations to understand voter accessibility.</li>
+            </ul>
+            <p>Click on either map to dive into the data and gain a deeper understanding of the 2024 election landscape.</p>
+        </div>
+    </div>
+</body>
+</html>
