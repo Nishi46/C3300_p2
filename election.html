@@ -416,6 +416,10 @@
 
             renderThresholds();
             updateMap(currentMapType);
+            const zoom = d3.zoom().scaleExtent([1, 8]).translateExtent([[0, 0], [width, height]])
+                .on("zoom", (event) => svg.selectAll("path").attr("transform", event.transform));
+
+            svg.call(zoom);
         });
     </script>
 </body>
