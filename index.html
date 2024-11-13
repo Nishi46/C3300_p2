@@ -46,7 +46,7 @@
     <svg id="choropleth" height="600" width="960"></svg>
     <ul id="polling-thresholds"></ul>
     <div class="tooltip" id="tooltip"></div>
-
+    <button id="reset-zoom">Reset Zoom</button>
     <script>
         const width = 960, height = 600;
         const svg = d3.select("#choropleth").attr("width", width).attr("height", height);
@@ -106,7 +106,32 @@
                         .attr("stroke", "#333")
                         .attr("stroke-width", 0.5)
                         .attr("fill-opacity", 1);
+                })
+                .on("click", function (event, d) {
+                    // Get bounding box of the selected county
+                    const [[x0, y0], [x1, y1]] = path.bounds(d);
+
+                    // Calculating center + scale for zooming into the county
+                    const dx = x1 - x0,
+                        dy = y1 - y0,
+                        x = (x0 + x1) / 2,
+                        y = (y0 + y1) / 2,
+                        scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height))),
+                        translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+                    svg.transition()
+                        .duration(750)
+                        .call(
+                            zoom.transform,
+                            d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+                        );
                 });
+
+            d3.select("#reset-zoom").on("click", () => {
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, d3.zoomIdentity); // Reset to original zoom level
+            });
 
             const thresholds = colorScale.quantiles();
             const ul = d3.select("#polling-thresholds");
