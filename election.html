@@ -15,7 +15,7 @@
             margin: 0;
             padding: 0;
         }
-
+        
         header {
             background-color: #002868;
             color: white;
@@ -23,19 +23,19 @@
             text-align: center;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-
+        
         h1 {
             margin: 0;
             font-size: 2.2em;
         }
-
+        
         .tab-container {
             display: flex;
             justify-content: center;
             background-color: #f1f1f1;
             margin-bottom: 20px;
         }
-
+        
         .tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -46,22 +46,22 @@
             border-radius: 5px;
             transition: background-color 0.3s;
         }
-
+        
         .tab:hover {
             background-color: #ddd;
         }
-
+        
         .active-tab {
             background-color: #4CAF50;
             color: white;
         }
-
+        
         .container {
             display: flex;
             padding: 40px;
             justify-content: center;
         }
-
+        
         #filter-container {
             max-width: 250px;
             padding: 20px;
@@ -73,13 +73,13 @@
             flex-direction: column;
             gap: 20px;
         }
-
+        
         #vote-thresholds {
             list-style-type: none;
             padding: 0;
             width: 100%;
         }
-
+        
         #vote-thresholds li {
             cursor: pointer;
             padding: 10px 20px;
@@ -91,16 +91,16 @@
             transition: background-color 0.3s;
             margin-bottom: 12px;
         }
-
+        
         #vote-thresholds li:hover {
             background-color: #d1d1d1;
         }
-
+        
         #vote-thresholds li.selected {
             background-color: #4CAF50;
             color: white;
         }
-
+        
         #clear-filters {
             padding: 10px 20px;
             background-color: #f44336;
@@ -112,17 +112,17 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-
+        
         #clear-filters:hover {
             background-color: #d32f2f;
         }
-
+        
         #choropleth {
             flex: 1;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
         }
-
+        
         .tooltip {
             position: absolute;
             background: white;
@@ -133,7 +133,7 @@
             opacity: 0;
             color: #333;
         }
-
+        
         .tooltip-box {
             width: 150px;
             background-color: black;
@@ -141,7 +141,7 @@
             padding: 8px;
             border-radius: 5px;
         }
-
+        
         #county-select-1,
         #county-select-2 {
             width: 100%;
@@ -150,18 +150,18 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
-
+        
         #comparison-result {
             margin-top: 20px;
             padding: 10px;
             background-color: #e8e8e8;
             border-radius: 5px;
         }
-
+        
         #comparison-container {
             margin-bottom: 20px;
         }
-
+        
         #compare-button {
             width: 100%;
             padding: 10px;
@@ -174,20 +174,20 @@
             font-weight: bold;
             margin-top: 10px;
         }
-
+        
         #compare-button:hover {
             background-color: #45a049;
         }
-
+        
         #comparison-map {
             display: flex;
             justify-content: space-between;
         }
-
+        
         .county-map {
             width: 48%;
         }
-
+        
         .back-button {
             display: inline-block;
             text-align: center;
@@ -201,11 +201,11 @@
             cursor: pointer;
             font-size: 16px;
         }
-
+        
         .back-button:hover {
             background-color: #45a049;
         }
-
+        
         .legend-container {
             min-width: 200px;
             margin-left: 40px;
@@ -216,7 +216,7 @@
             flex-direction: column;
             gap: 20px;
         }
-
+        
         .legend-title {
             text-align: center;
             margin: 0;
@@ -224,13 +224,13 @@
             font-weight: bold;
             color: #333;
         }
-
+        
         .legend-list {
             list-style: none;
             padding: 10px;
             margin: 0;
         }
-
+        
         .legend-item {
             display: flex;
             align-items: center;
@@ -238,12 +238,12 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.2s;
         }
-
+        
         .legend-text {
             font-size: 14px;
             color: #333;
         }
-
+        
         .legend-color-box {
             width: 20px;
             height: 20px;
@@ -251,11 +251,11 @@
             margin-right: 10px;
             flex-shrink: 0;
         }
-
+        
         .legend-item:hover {
             transform: scale(1.05);
         }
-
+        
         .legend-item.selected {
             color: white;
             font-weight: bold;
@@ -306,7 +306,8 @@
     </div>
     <div class="tooltip" id="tooltip"></div>
     <script>
-        const width = 860, height = 600;
+        const width = 860,
+            height = 600;
         const svg = d3.select("#choropleth").attr("width", width).attr("height", height);
         let currentMapType = "vote-difference";
         let selectedThreshold = null;
@@ -348,6 +349,9 @@
 
             const tooltip = d3.select("#tooltip");
 
+            let selectedThreshold = null;
+            let comparisonMode = false;
+
             function updateMap(type) {
                 svg.selectAll("*").remove();
 
@@ -365,8 +369,14 @@
                         const countyFips = d.id;
                         const demVote = demVotes.get(countyFips) || 0;
                         const repVote = repVotes.get(countyFips) || 0;
+                        const diff = voteDifferences.get(countyFips) || 0;
+
+                        // Apply threshold filter
+                        if (selectedThreshold !== null && Math.abs(diff) <= selectedThreshold) {
+                            return "#ccc"; // Gray out counties that don't meet the threshold
+                        }
+
                         if (type === "vote-difference") {
-                            const diff = voteDifferences.get(countyFips) || 0;
                             return diff > 0 ? colorScales["rep-majority"](repVote) : colorScales["dem-majority"](demVote);
                         } else if (type === "dem-vote") {
                             return colorScales["dem-majority"](demVote);
@@ -376,7 +386,7 @@
                     })
                     .attr("stroke", "#333")
                     .attr("stroke-width", 0.5)
-                    .on("mouseover", function (event, d) {
+                    .on("mouseover", function(event, d) {
                         const countyFips = d.id;
                         const diff = voteDifferences.get(countyFips) || 0;
                         const value = type === "vote-difference" ? diff : (type === "dem-vote" ? demVotes.get(countyFips) : repVotes.get(countyFips));
@@ -391,18 +401,21 @@
                             .attr("stroke", "black")
                             .attr("stroke-width", 2);
                     })
-                    .on("mouseout", function () {
+                    .on("mouseout", function() {
                         tooltip.transition().duration(200).style("opacity", 0);
                         d3.select(this)
                             .transition()
                             .duration(100)
-                            .attr("fill-opacity", 1)  // Reset opacity
+                            .attr("fill-opacity", 1) // Reset opacity
                             .attr("stroke", "#333")
                             .attr("stroke-width", 0.5);
                     })
-                    .on("click", function (event, d) {
+                    .on("click", function(event, d) {
                         // Get bounding box of the selected county
-                        const [[x0, y0], [x1, y1]] = path.bounds(d);
+                        const [
+                            [x0, y0],
+                            [x1, y1]
+                        ] = path.bounds(d);
 
                         // Calculating center + scale for zooming into the county
                         const dx = x1 - x0,
@@ -524,7 +537,7 @@
                 });
             }
 
-            d3.selectAll(".tab").on("click", function () {
+            d3.selectAll(".tab").on("click", function() {
                 const newMapType = d3.select(this).attr("data-map");
                 d3.selectAll(".tab").classed("active-tab", false);
                 d3.select(this).classed("active-tab", true);
@@ -540,30 +553,41 @@
                     .join("li")
                     .text(d => `Threshold: ±${d}`)
                     .classed("selected", d => selectedThreshold === d)
-                    .on("click", function (event, d) {
+                    .on("click", function(event, d) {
                         selectedThreshold = (selectedThreshold === d) ? null : d;
                         d3.selectAll("#vote-thresholds li").classed("selected", false);
-                        d3.select(this).classed("selected", true);
+                        d3.select(this).classed("selected", selectedThreshold === d);
                         updateMap(currentMapType);
                     });
             }
+            d3.select("#compare-button").on("click", function() {
+                const fips1 = d3.select("#county-select-1").property("value");
+                const fips2 = d3.select("#county-select-2").property("value");
 
-            d3.select("#compare-button").on("click", function () {
-                comparisonMode = true;
-                updateMap(currentMapType);
+                if (fips1 && fips2) {
+                    comparisonMode = true;
+                    updateMap(currentMapType);
+                } else {
+                    alert("Please select two counties to compare.");
+                }
             });
 
-            d3.select("#clear-filters").on("click", function () {
+            d3.select("#clear-filters").on("click", function() {
                 comparisonMode = false;
+                selectedThreshold = null;
                 d3.select("#county-select-1").property("value", "");
                 d3.select("#county-select-2").property("value", "");
                 d3.select("#comparison-result").html("");
+                d3.selectAll("#vote-thresholds li").classed("selected", false);
                 updateMap(currentMapType);
             });
 
             renderThresholds();
             updateMap(currentMapType);
-            const zoom = d3.zoom().scaleExtent([1, 8]).translateExtent([[0, 0], [width, height]])
+            const zoom = d3.zoom().scaleExtent([1, 8]).translateExtent([
+                    [0, 0],
+                    [width, height]
+                ])
                 .on("zoom", (event) => svg.selectAll("path").attr("transform", event.transform));
 
             svg.call(zoom);
@@ -603,8 +627,7 @@
                     colors = colorScales["dem-majority"].range();
                 } else if (type === "rep-vote") {
                     colors = colorScales["rep-majority"].range();
-                }
-                else {
+                } else {
                     colors = colors.concat(colorScales["dem-majority"].range().reverse());
                     colors = colors.concat(colorScales["rep-majority"].range());
                 }
@@ -619,7 +642,7 @@
                     .data(legendData[type])
                     .join("li")
                     .attr("class", "legend-item")
-                    .each(function (label, i) {
+                    .each(function(label, i) {
                         const item = d3.select(this);
 
                         item.append("div")
@@ -630,7 +653,7 @@
                             .attr("class", "legend-text")
                             .html(label);
 
-                        item.on("click", function () {
+                        item.on("click", function() {
                             const isSelected = selectedColor === colors[i];
                             const allPaths = d3.selectAll("path.county");
 
@@ -642,7 +665,7 @@
                                 selectedColor = colors[i];
                                 allPaths.attr("opacity", 0.2);
                                 allPaths
-                                    .filter(function () {
+                                    .filter(function() {
                                         return d3.select(this).attr("fill") === selectedColor;
                                     })
                                     .attr("opacity", 1);
