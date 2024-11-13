@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@
             margin: 0;
             padding: 0;
         }
+
         header {
             background-color: #002868;
             color: white;
@@ -21,16 +23,19 @@
             text-align: center;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+
         h1 {
             margin: 0;
             font-size: 2.2em;
         }
+
         .tab-container {
             display: flex;
             justify-content: center;
             background-color: #f1f1f1;
             margin-bottom: 20px;
         }
+
         .tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -41,18 +46,22 @@
             border-radius: 5px;
             transition: background-color 0.3s;
         }
+
         .tab:hover {
             background-color: #ddd;
         }
+
         .active-tab {
             background-color: #4CAF50;
             color: white;
         }
+
         .container {
             display: flex;
             padding: 40px;
             justify-content: center;
         }
+
         #filter-container {
             max-width: 250px;
             padding: 20px;
@@ -64,11 +73,13 @@
             flex-direction: column;
             gap: 20px;
         }
+
         #vote-thresholds {
             list-style-type: none;
             padding: 0;
             width: 100%;
         }
+
         #vote-thresholds li {
             cursor: pointer;
             padding: 10px 20px;
@@ -80,13 +91,16 @@
             transition: background-color 0.3s;
             margin-bottom: 12px;
         }
+
         #vote-thresholds li:hover {
             background-color: #d1d1d1;
         }
+
         #vote-thresholds li.selected {
             background-color: #4CAF50;
             color: white;
         }
+
         #clear-filters {
             padding: 10px 20px;
             background-color: #f44336;
@@ -98,14 +112,17 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
+
         #clear-filters:hover {
             background-color: #d32f2f;
         }
+
         #choropleth {
             flex: 1;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
         }
+
         .tooltip {
             position: absolute;
             background: white;
@@ -116,6 +133,7 @@
             opacity: 0;
             color: #333;
         }
+
         .tooltip-box {
             width: 150px;
             background-color: black;
@@ -123,22 +141,27 @@
             padding: 8px;
             border-radius: 5px;
         }
-        #county-select-1, #county-select-2 {
+
+        #county-select-1,
+        #county-select-2 {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+
         #comparison-result {
             margin-top: 20px;
             padding: 10px;
             background-color: #e8e8e8;
             border-radius: 5px;
         }
+
         #comparison-container {
             margin-bottom: 20px;
         }
+
         #compare-button {
             width: 100%;
             padding: 10px;
@@ -151,18 +174,22 @@
             font-weight: bold;
             margin-top: 10px;
         }
+
         #compare-button:hover {
             background-color: #45a049;
         }
+
         #comparison-map {
             display: flex;
             justify-content: space-between;
         }
+
         .county-map {
             width: 48%;
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1>Election Results Choropleth Map</h1>
@@ -211,7 +238,7 @@
             d3.json("data/counties-10m.json"),
             d3.csv("data/2020_elections.csv"),
             d3.csv("data/Poverty.csv")
-        ]).then(([topoData, electionData, povertyCSV])=> {
+        ]).then(([topoData, electionData, povertyCSV]) => {
             const counties = topojson.feature(topoData, topoData.objects.counties);
             const voteDifferences = d3.rollup(electionData, v => +v[0].per_point_diff, d => d.county_fips);
             const demVotes = d3.rollup(electionData, v => +v[0].votes_dem, d => d.county_fips);
@@ -242,7 +269,7 @@
 
             function updateMap(type) {
                 svg.selectAll("*").remove();
-                
+
                 if (comparisonMode) {
                     renderComparisonView();
                     return;
@@ -276,55 +303,67 @@
                         tooltip.html(`<div class="tooltip-box"><strong>County ID: ${countyFips}</strong><br>${type.replace('-', ' ')}: ${value}</div>`)
                             .style("left", (event.pageX + 10) + "px")
                             .style("top", (event.pageY - 20) + "px");
+                        d3.select(this)
+                            .transition()
+                            .duration(100)
+                            .attr("fill-opacity", 0.5) //reducing opacity 
+                            .attr("stroke", "black")
+                            .attr("stroke-width", 2);
                     })
                     .on("mouseout", function () {
                         tooltip.transition().duration(200).style("opacity", 0);
+                        d3.select(this)
+                            .transition()
+                            .duration(100)
+                            .attr("fill-opacity", 1)  // Reset opacity
+                            .attr("stroke", "#333")
+                            .attr("stroke-width", 0.5);
                     });
             }
             povertyData = povertyCSV;
 
             const states = Array.from(new Set(povertyData.map(d => d.State)))
-            .sort((a, b) => a.localeCompare(b));
-    
-    d3.select("#state-select")
-        .selectAll("option")
-        .data(states)
-        .enter()
-        .append("option")
-        .attr("value", d => d)
-        .text(d => d);
+                .sort((a, b) => a.localeCompare(b));
 
-    // Event listener for state selection
-    d3.select("#state-select").on("change", updateCountyDropdowns);
+            d3.select("#state-select")
+                .selectAll("option")
+                .data(states)
+                .enter()
+                .append("option")
+                .attr("value", d => d)
+                .text(d => d);
 
-    function updateCountyDropdowns() {
-        const selectedState = d3.select("#state-select").property("value");
-        const countiesInState = povertyData.filter(d => d.State === selectedState);
+            // Event listener for state selection
+            d3.select("#state-select").on("change", updateCountyDropdowns);
 
-        const countyOptions = countiesInState.map(d => `<option value="${d.FIPS_Code}">${d.Area_name}</option>`).join('');
+            function updateCountyDropdowns() {
+                const selectedState = d3.select("#state-select").property("value");
+                const countiesInState = povertyData.filter(d => d.State === selectedState);
 
-        d3.select("#county-select-1").html('<option value="">Select first county</option>' + countyOptions);
-        d3.select("#county-select-2").html('<option value="">Select second county</option>' + countyOptions);
-    }
+                const countyOptions = countiesInState.map(d => `<option value="${d.FIPS_Code}">${d.Area_name}</option>`).join('');
 
-            
+                d3.select("#county-select-1").html('<option value="">Select first county</option>' + countyOptions);
+                d3.select("#county-select-2").html('<option value="">Select second county</option>' + countyOptions);
+            }
+
+
             function renderComparisonView() {
                 svg.selectAll("*").remove();
-            
+
                 const fips1 = d3.select("#county-select-1").property("value");
                 const fips2 = d3.select("#county-select-2").property("value");
-            
+
                 const selectedFeatures = counties.features.filter(d => [fips1, fips2].includes(d.id));
-            
+
                 // Create a new projection for each county
                 selectedFeatures.forEach((feature, index) => {
                     const countyProjection = d3.geoAlbersUsa()
                         .fitSize([width / 2 - 20, height - 100], feature);
                     const countyPath = d3.geoPath().projection(countyProjection);
-            
+
                     const countyGroup = svg.append("g")
                         .attr("transform", `translate(${index * (width / 2 + 10)}, 0)`);
-            
+
                     const countyData = electionData.find(d => d.county_fips === feature.id);
                     const povertyInfo = povertyData.find(d => d.FIPS_Code === feature.id);
                     // Draw county
@@ -354,14 +393,14 @@
                         .attr("font-size", "16px")
                         .attr("font-weight", "bold")
                         .text(countyData.county_name);
-            
+
                     // Add vote data
                     countyGroup.append("text")
                         .attr("x", width / 4)
                         .attr("y", height - 40)
                         .attr("text-anchor", "middle")
                         .text(`Dem: ${countyData.votes_dem}, Rep: ${countyData.votes_gop}`);
-            
+
                     // Add percentage difference
                     countyGroup.append("text")
                         .attr("x", width / 4)
@@ -371,7 +410,7 @@
 
                     countyGroup.append("text")
                         .attr("x", width / 4)
-                        .attr("y", height -5)
+                        .attr("y", height - 5)
                         .attr("text-anchor", "middle")
                         .text(`Poverty Rate: ${povertyInfo.PCTPOVALL_2021}%`);
                 });
@@ -401,12 +440,12 @@
                     });
             }
 
-            d3.select("#compare-button").on("click", function() {
+            d3.select("#compare-button").on("click", function () {
                 comparisonMode = true;
                 updateMap(currentMapType);
             });
 
-            d3.select("#clear-filters").on("click", function() {
+            d3.select("#clear-filters").on("click", function () {
                 comparisonMode = false;
                 d3.select("#county-select-1").property("value", "");
                 d3.select("#county-select-2").property("value", "");
@@ -423,4 +462,5 @@
         });
     </script>
 </body>
+
 </html>

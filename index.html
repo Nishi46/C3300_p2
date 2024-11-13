@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polling Locations Choropleth Map</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .county {
+            stroke: #333;
+            stroke-width: 0.5;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .tooltip-box {
+            width: 120px;
+            height: auto;
+            background-color: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        #polling-thresholds {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <svg id="choropleth" height="600" width="960"></svg>
+    <ul id="polling-thresholds"></ul>
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        const width = 960, height = 600;
+        const svg = d3.select("#choropleth").attr("width", width).attr("height", height);
+
+        Promise.all([
+            d3.json("data/counties-10m.json"), // Load the TopoJSON data
+            d3.csv("data/polling_places.csv") // Load polling location data
+        ]).then(([topoData, pollingData]) => {
+
+            const counties = topojson.feature(topoData, topoData.objects.counties);
+            const locationCounts = d3.rollup(
+                pollingData,
+                v => v.length,
+                d => d.county_name
+            );
+
+            const countsArray = Array.from(locationCounts.values());
+            const colors = ["#ffe9bd", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"];
+            const colorScale = d3.scaleQuantile()
+                .domain(countsArray)
+                .range(colors);
+
+            const projection = d3.geoAlbersUsa().fitSize([width, height], counties);
+            const path = d3.geoPath().projection(projection);
+
+            const tooltip = d3.select("#tooltip");
+
+            svg.selectAll("path")
+                .data(counties.features)
+                .enter().append("path")
+                .attr("d", path)
+                .attr("class", "county")
+                .attr("fill", d => {
+                    const count = locationCounts.get(d.properties.name) || 0;
+                    return colorScale(count);
+                })
+                .on("mouseover", function (event, d) {
+                    const countyName = d.properties.name;
+                    const count = locationCounts.get(countyName) || 0;
+
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`<div class="tooltip-box">
+                                    <strong>${countyName}</strong><br>
+                                    Polling Locations: ${count}
+                                  </div>`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+
+                    d3.select(this)
+                        .attr("stroke", "black")
+                        .attr("stroke-width", 2)
+                        .attr("fill-opacity", 0.5);
+                })
+                .on("mouseout", function () {
+                    tooltip.transition().duration(200).style("opacity", 0);
+                    d3.select(this)
+                        .attr("stroke", "#333")
+                        .attr("stroke-width", 0.5)
+                        .attr("fill-opacity", 1);
+                });
+
+            const thresholds = colorScale.quantiles();
+            const ul = d3.select("#polling-thresholds");
+
+            ul.selectAll("li")
+                .data(thresholds)
+                .enter()
+                .append("li")
+                .text(threshold => `Up to ${d3.format(",.0f")(threshold)} polling locations`)
+                .style("color", (d, i) => colors[i]);
+
+            const zoom = d3.zoom()
+                .scaleExtent([1, 8])
+                .translateExtent([[0, 0], [width, height]]) // Limit panning to SVG bounds
+                .on("zoom", (event) => {
+                    svg.selectAll("path").attr("transform", event.transform);
+                });
+
+
+            svg.call(zoom);
+        }).catch(error => console.error("Error loading data:", error));
+    </script>
+</body>
+
+</html>

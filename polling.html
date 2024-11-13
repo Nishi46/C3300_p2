@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +15,7 @@
             margin: 0;
             padding: 0;
         }
-        
+
         header {
             background-color: #002868;
             color: white;
@@ -22,24 +23,24 @@
             text-align: center;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        
+
         h1 {
             margin: 0;
             font-size: 2.2em;
         }
-        
+
         h3 {
             color: #002868;
             text-align: center;
             margin-top: 0;
         }
-        
+
         .container {
             display: flex;
             justify-content: center;
             padding: 40px;
         }
-        
+
         #filter-container {
             max-width: 250px;
             padding: 20px;
@@ -51,13 +52,13 @@
             flex-direction: column;
             gap: 20px;
         }
-        
+
         #choropleth {
             flex: 1;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
         }
-        
+
         .tooltip {
             position: absolute;
             background: white;
@@ -68,7 +69,7 @@
             opacity: 0;
             color: #333;
         }
-        
+
         .tooltip-box {
             width: 120px;
             height: auto;
@@ -77,38 +78,38 @@
             padding: 8px;
             border-radius: 5px;
         }
-        
+
         .county {
             stroke: #333;
             stroke-width: 0.5;
         }
-        
+
         #polling-thresholds {
             list-style-type: none;
             padding: 0;
             margin: 0;
             width: 100%;
         }
-        
+
         #polling-thresholds li {
             cursor: pointer;
             padding: 10px 15px;
             border-radius: 25px;
             font-size: 16px;
             text-align: center;
-            background-color: #e8e8e8; 
+            background-color: #e8e8e8;
             transition: background-color 0.3s;
         }
-        
+
         #polling-thresholds li:hover {
-            background-color: #d1d1d1; 
+            background-color: #d1d1d1;
         }
-        
+
         #polling-thresholds li.selected {
             background-color: #4CAF50;
             color: white;
         }
-        
+
         #clear-filters {
             padding: 10px 20px;
             background-color: #f44336;
@@ -120,11 +121,10 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
+
         #clear-filters:hover {
             background-color: #d32f2f;
         }
-        
     </style>
 </head>
 
@@ -179,13 +179,13 @@
                     const count = locationCounts.get(countyName) || 0;
                     tooltip.transition().duration(200).style("opacity", 1);
                     tooltip.html(`<div class="tooltip-box"><strong>${countyName}</strong><br>Polling Locations: ${count}</div>`)
-                           .style("left", (event.pageX + 10) + "px")
-                           .style("top", (event.pageY - 28) + "px");
-                    d3.select(this).attr("stroke", "black").attr("stroke-width", 2);
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                    d3.select(this).attr("stroke", "black").attr("stroke-width", 2).attr("fill-opacity", 0.5);
                 })
                 .on("mouseout", function () {
                     tooltip.transition().duration(200).style("opacity", 0);
-                    d3.select(this).attr("stroke", "#333").attr("stroke-width", 0.5);
+                    d3.select(this).attr("stroke", "#333").attr("stroke-width", 0.5).attr("fill-opacity", 1);
                 });
 
             const thresholds = colorScale.quantiles();
@@ -197,7 +197,7 @@
                 .append("li")
                 .text(threshold => `Up to ${d3.format(",.0f")(threshold)} polling locations`)
                 .style("color", (d, i) => colors[i])
-                .on("click", function(event, threshold) {
+                .on("click", function (event, threshold) {
                     d3.select(this).classed("selected", !d3.select(this).classed("selected"));
                     highlightCounties(getSelectedThresholds());
                 });
@@ -225,4 +225,5 @@
         }).catch(error => console.error("Error loading data:", error));
     </script>
 </body>
+
 </html>
