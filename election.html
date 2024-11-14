@@ -206,7 +206,6 @@
             background-color: #45a049;
         }
 
-        /* Legend Container */
         .legend-container {
             min-width: 200px;
             margin-left: 40px;
@@ -218,7 +217,6 @@
             gap: 20px;
         }
 
-        /* Legend Title */
         .legend-title {
             text-align: center;
             margin: 0;
@@ -227,21 +225,25 @@
             color: #333;
         }
 
-        /* Legend List */
         .legend-list {
             list-style: none;
             padding: 10px;
             margin: 0;
         }
 
-        /* Legend Items */
         .legend-item {
             display: flex;
             align-items: center;
             margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
         }
 
-        /* Legend Color Box */
+        .legend-text {
+            font-size: 14px;
+            color: #333;
+        }
+
         .legend-color-box {
             width: 20px;
             height: 20px;
@@ -250,10 +252,15 @@
             flex-shrink: 0;
         }
 
-        /* Legend Text */
-        .legend-text {
-            font-size: 14px;
-            color: #333;
+        .legend-item:hover {
+            transform: scale(1.05);
+        }
+
+        .legend-item.selected {
+            color: white;
+            font-weight: bold;
+            border-radius: 5px;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -606,6 +613,8 @@
 
                 legend.selectAll("*").remove();
 
+                let selectedColor = null;
+
                 legend.selectAll(".legend-item")
                     .data(legendData[type])
                     .join("li")
@@ -620,6 +629,28 @@
                         item.append("span")
                             .attr("class", "legend-text")
                             .html(label);
+
+                        item.on("click", function () {
+                            const isSelected = selectedColor === colors[i];
+                            const allPaths = d3.selectAll("path.county");
+
+                            if (isSelected) {
+                                selectedColor = null;
+                                allPaths.attr("opacity", 1);
+                                legend.selectAll(".legend-item").classed("selected", false);
+                            } else {
+                                selectedColor = colors[i];
+                                allPaths.attr("opacity", 0.2);
+                                allPaths
+                                    .filter(function () {
+                                        return d3.select(this).attr("fill") === selectedColor;
+                                    })
+                                    .attr("opacity", 1);
+
+                                legend.selectAll(".legend-item").classed("selected", false);
+                                d3.select(this).classed("selected", true);
+                            }
+                        });
                     });
             }
 
