@@ -187,12 +187,81 @@
         .county-map {
             width: 48%;
         }
+
+        .back-button {
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Legend Container */
+        .legend-container {
+            min-width: 200px;
+            margin-left: 40px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Legend Title */
+        .legend-title {
+            text-align: center;
+            margin: 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Legend List */
+        .legend-list {
+            list-style: none;
+            padding: 10px;
+            margin: 0;
+        }
+
+        /* Legend Items */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* Legend Color Box */
+        .legend-color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        /* Legend Text */
+        .legend-text {
+            font-size: 14px;
+            color: #333;
+        }
     </style>
 </head>
 
 <body>
     <header>
         <h1>Election Results Choropleth Map</h1>
+        <a href="home.html" class="back-button ">Back to Home</a>
     </header>
     <div class="tab-container">
         <div class="tab active-tab" data-map="vote-difference">Vote Difference</div>
@@ -221,12 +290,16 @@
             <button id="reset-zoom">Reset Zoom</button>
         </div>
         <div id="map-container">
-            <svg id="choropleth" height="600" width="960"></svg>
+            <svg id="choropleth" height="600" width="860"></svg>
+        </div>
+        <div id="legend-container" class="legend-container">
+            <h3 class="legend-title">Legend</h3>
+            <ul id="legend" class="legend-list"></ul>
         </div>
     </div>
     <div class="tooltip" id="tooltip"></div>
     <script>
-        const width = 960, height = 600;
+        const width = 860, height = 600;
         const svg = d3.select("#choropleth").attr("width", width).attr("height", height);
         let currentMapType = "vote-difference";
         let selectedThreshold = null;
@@ -346,6 +419,7 @@
                         .call(zoom.transform, d3.zoomIdentity); // Reset to original zoom level
                 });
 
+                createLegend(type);
             }
             povertyData = povertyCSV;
 
@@ -486,6 +560,69 @@
                 .on("zoom", (event) => svg.selectAll("path").attr("transform", event.transform));
 
             svg.call(zoom);
+
+            function createLegend(type) {
+                const legendData = {
+                    "vote-difference": [
+                        "Strong Dem. Majority",
+                        "Moderate Dem. Majority",
+                        "Slight Dem. Majority",
+                        "Lean Dem.",
+                        "Slight Dem. Lean",
+                        "Slight Rep. Lean",
+                        "Lean Rep.",
+                        "Slight Rep. Majority",
+                        "Moderate Rep. Majority",
+                        "Strong Rep. Majority"
+                    ],
+                    "dem-vote": [
+                        "Lowest Dem. Votes",
+                        "Low Dem. Votes",
+                        "Moderate Dem. Votes",
+                        "High Dem. Votes",
+                        "Highest Dem. Votes"
+                    ],
+                    "rep-vote": [
+                        "Lowest Rep. Votes",
+                        "Low Rep. Votes",
+                        "Moderate Rep. Votes",
+                        "High Rep. Votes",
+                        "Highest Rep. Votes"
+                    ]
+                };
+                let colors = [];
+
+                if (type === "dem-vote") {
+                    colors = colorScales["dem-majority"].range();
+                } else if (type === "rep-vote") {
+                    colors = colorScales["rep-majority"].range();
+                }
+                else {
+                    colors = colors.concat(colorScales["dem-majority"].range().reverse());
+                    colors = colors.concat(colorScales["rep-majority"].range());
+                }
+
+                const legend = d3.select("#legend");
+
+                legend.selectAll("*").remove();
+
+                legend.selectAll(".legend-item")
+                    .data(legendData[type])
+                    .join("li")
+                    .attr("class", "legend-item")
+                    .each(function (label, i) {
+                        const item = d3.select(this);
+
+                        item.append("div")
+                            .attr("class", "legend-color-box")
+                            .style("background-color", colors[i]);
+
+                        item.append("span")
+                            .attr("class", "legend-text")
+                            .html(label);
+                    });
+            }
+
         });
     </script>
 </body>
