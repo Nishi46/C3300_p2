@@ -5,11 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polling Locations Choropleth Map</title>
+    
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #f0f8ff;
             color: #333;
             margin: 0;
@@ -23,7 +24,7 @@
             text-align: center;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-
+        
         h1 {
             margin: 0;
             font-size: 2.2em;
@@ -93,12 +94,14 @@
 
         #polling-thresholds li {
             cursor: pointer;
-            padding: 10px 15px;
+            padding: 10px 20px;
             border-radius: 25px;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
             text-align: center;
             background-color: #e8e8e8;
             transition: background-color 0.3s;
+            margin-bottom: 12px;
         }
 
         #polling-thresholds li:hover {
@@ -264,7 +267,11 @@
                 d3.selectAll("#polling-thresholds li").classed("selected", false);
                 svg.selectAll("path").attr("fill", d => colorScale(locationCounts.get(d.properties.name) || 0));
             });
-
+            d3.select("#reset-zoom").on("click", () => {
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, d3.zoomIdentity); // Reset to original zoom level
+            });
             const zoom = d3.zoom().scaleExtent([1, 8]).translateExtent([[0, 0], [width, height]])
                 .on("zoom", (event) => svg.selectAll("path").attr("transform", event.transform));
 
