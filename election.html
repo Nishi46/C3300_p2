@@ -366,23 +366,24 @@
                     .attr("d", path)
                     .attr("class", "county")
                     .attr("fill", d => {
-                        const countyFips = d.id;
-                        const demVote = demVotes.get(countyFips) || 0;
-                        const repVote = repVotes.get(countyFips) || 0;
-                        const diff = voteDifferences.get(countyFips) || 0;
+                    const countyFips = d.id;
+                    const demVote = demVotes.get(countyFips) || 0;
+                    const repVote = repVotes.get(countyFips) || 0;
+                    const diff = voteDifferences.get(countyFips) || 0;
 
-                        // Apply threshold filter
-                        if (selectedThreshold !== null && Math.abs(diff) <= selectedThreshold) {
-                            return "#ccc"; // Gray out counties that don't meet the threshold
+                    if (selectedThreshold !== null) {
+                        if (Math.abs(diff) <= Math.abs(selectedThreshold)) {
+                        return "#e0e0e0"; // Gray out counties within the threshold
                         }
+                    }
 
-                        if (type === "vote-difference") {
-                            return diff > 0 ? colorScales["rep-majority"](repVote) : colorScales["dem-majority"](demVote);
-                        } else if (type === "dem-vote") {
-                            return colorScales["dem-majority"](demVote);
-                        } else if (type === "rep-vote") {
-                            return colorScales["rep-majority"](repVote);
-                        }
+                    if (type === "vote-difference") {
+                        return diff > 0 ? colorScales["rep-majority"](repVote) : colorScales["dem-majority"](demVote);
+                    } else if (type === "dem-vote") {
+                        return colorScales["dem-majority"](demVote);
+                    } else if (type === "rep-vote") {
+                        return colorScales["rep-majority"](repVote);
+                    }
                     })
                     .attr("stroke", "#333")
                     .attr("stroke-width", 0.5)
@@ -547,19 +548,26 @@
             });
 
             function renderThresholds() {
-                const thresholds = [0, 1, 2, 3, 4];
+                const voteDifferenceValues = Array.from(voteDifferences.values());
+                const thresholds = [0.8,0.6,0.4,0.2].map(q => d3.quantile(voteDifferenceValues, q));
+                
                 const thresholdsList = d3.select("#vote-thresholds").selectAll("li")
-                    .data(thresholds)
-                    .join("li")
-                    .text(d => `Threshold: ±${d}`)
-                    .classed("selected", d => selectedThreshold === d)
-                    .on("click", function(event, d) {
-                        selectedThreshold = (selectedThreshold === d) ? null : d;
-                        d3.selectAll("#vote-thresholds li").classed("selected", false);
-                        d3.select(this).classed("selected", selectedThreshold === d);
-                        updateMap(currentMapType);
-                    });
-            }
+                  .data(thresholds)
+                  .join("li")
+                  .text(d => `±${d3.format(".2f")(Math.abs(d))} vote difference`)
+                  .classed("selected", d => selectedThreshold === d)
+                  .on("click", function (event, d) {
+                    if (selectedThreshold === d) {
+                      selectedThreshold = null;
+                      d3.select(this).classed("selected", false);
+                    } else {
+                      selectedThreshold = d;
+                      d3.selectAll("#vote-thresholds li").classed("selected", false);
+                      d3.select(this).classed("selected", true);
+                    }
+                    updateMap(currentMapType);
+                  });
+              }
             d3.select("#compare-button").on("click", function() {
                 const fips1 = d3.select("#county-select-1").property("value");
                 const fips2 = d3.select("#county-select-2").property("value");
