@@ -268,6 +268,13 @@
             border-radius: 5px;
             text-decoration: underline;
         }
+        #bar-graph-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+            width: 100%;
+        }
+        
     </style>
 </head>
 
@@ -309,7 +316,9 @@
             <h3 class="legend-title">Legend</h3>
             <ul id="legend" class="legend-list"></ul>
         </div>
+       
     </div>
+    <div id="bar-graph-container"></div>
     <div class="tooltip" id="tooltip"></div>
     <script>
         const width = 860,
@@ -319,19 +328,20 @@
         let selectedThreshold = null;
         let countyNames = new Map();
         let comparisonMode = false;
-
         let povertyData;
+        let demographicData;
 
         Promise.all([
             d3.json("data/counties-10m.json"),
             d3.csv("data/2020_elections.csv"),
-            d3.csv("data/Poverty.csv")
-        ]).then(([topoData, electionData, povertyCSV]) => {
+            d3.csv("data/Poverty.csv"),
+            d3.csv("data/demographic_2020.csv")
+        ]).then(([topoData, electionData, povertyCSV,demographicCSV]) => {
             const counties = topojson.feature(topoData, topoData.objects.counties);
             const voteDifferences = d3.rollup(electionData, v => +v[0].per_point_diff, d => d.county_fips);
             const demVotes = d3.rollup(electionData, v => +v[0].votes_dem, d => d.county_fips);
             const repVotes = d3.rollup(electionData, v => +v[0].votes_gop, d => d.county_fips);
-
+            demographicData = demographicCSV
             // Populate county names map and dropdowns
             electionData.forEach(d => {
                 countyNames.set(d.county_fips, d.county_name);
@@ -438,6 +448,7 @@
                                 zoom.transform,
                                 d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
                             );
+                        renderBarGraph(d.id);
                     });
 
                 d3.select("#reset-zoom").on("click", () => {
@@ -474,7 +485,127 @@
                 d3.select("#county-select-2").html('<option value="">Select second county</option>' + countyOptions);
             }
 
-
+            function renderBarGraph(countyFips) {
+                const countyData = demographicData.find(d => d.fips === countyFips);
+                if (!countyData) return;
+            
+                const barData = [
+                    {label: "Total", value: +countyData.population},
+                    {label: "White", value: +countyData.w_population},
+                    {label: "Black", value: +countyData.b_population},
+                    {label: "Other", value: +countyData.o_population},
+                    {label: "Hispanic", value: +countyData.hi_population},
+                    {label: "Non-Hispanic", value: +countyData.nh_population},
+                    {label: "Native American", value: +countyData.na_population},
+                    {label: "Male", value: +countyData.male_population},
+                    {label: "Female", value: +countyData.female_population}
+                ];
+            
+                const margin = {top: 40, right: 20, bottom: 60, left: 60};
+                const barWidth = 860 - margin.left - margin.right;
+                const barHeight = 400 - margin.top - margin.bottom;
+            
+                d3.select("#bar-graph-container").selectAll("*").remove();
+            
+                const barSvg = d3.select("#bar-graph-container")
+                    .append("svg")
+                    .attr("width", barWidth + margin.left + margin.right)
+                    .attr("height", barHeight + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+                const x = d3.scaleBand()
+                    .range([0, barWidth])
+                    .padding(0.1);
+            
+                const y = d3.scaleLinear()
+                    .range([barHeight, 0]);
+            
+                x.domain(barData.map(d => d.label));
+                y.domain([0, d3.max(barData, d => d.value)]);
+            
+                const colorScale = d3.scaleOrdinal()
+                    .domain(barData.map(d => d.label))
+                    .range(["#4CAF50", "#2196F3", "#FFC107", "#FF5722", "#9C27B0", "#795548", "#607D8B", "#E91E63", "#00BCD4"]);
+            
+                const tooltip = d3.select("#tooltip");
+            
+                barSvg.selectAll(".bar")
+                    .data(barData)
+                    .enter().append("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => x(d.label))
+                    .attr("width", x.bandwidth())
+                    .attr("y", barHeight)
+                    .attr("height", 0)
+                    .attr("fill", d => colorScale(d.label))
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).transition()
+                            .duration(200)
+                            .attr("fill", "#ff7f0e");
+            
+                        tooltip.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                        tooltip.html(`${d.label}: ${d.value.toLocaleString()}`)
+                            .style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function(d) {
+                        d3.select(this).transition()
+                            .duration(200)
+                            .attr("fill", colorScale(d.label));
+            
+                        tooltip.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    })
+                    .on("click", function(event, d) {
+                        console.log(`Clicked on ${d.label} with value ${d.value}`);
+                        // You can add more functionality here, like updating other parts of your page
+                    })
+                    .transition()
+                    .duration(1000)
+                    .attr("y", d => y(d.value))
+                    .attr("height", d => barHeight - y(d.value));
+            
+                barSvg.append("g")
+                    .attr("transform", `translate(0,${barHeight})`)
+                    .call(d3.axisBottom(x))
+                    .selectAll("text")
+                    .attr("transform", "rotate(-45)")
+                    .style("text-anchor", "end");
+            
+                barSvg.append("g")
+                    .call(d3.axisLeft(y));
+            
+                barSvg.append("text")
+                    .attr("x", barWidth / 2)
+                    .attr("y", 0 - (margin.top / 2))
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "16px")
+                    .text(`Population Data for ${countyNames.get(countyFips)} (${countyData.year})`);
+            
+                // Add zoom functionality
+                const zoom = d3.zoom()
+                    .scaleExtent([1, 8])
+                    .on("zoom", zoomed);
+            
+                barSvg.call(zoom);
+            
+                function zoomed(event) {
+                    const newX = event.transform.rescaleX(x);
+                    const newY = event.transform.rescaleY(y);
+            
+                    barSvg.selectAll(".bar")
+                        .attr("x", d => newX(d.label))
+                        .attr("y", d => newY(d.value))
+                        .attr("height", d => barHeight - newY(d.value));
+            
+                    barSvg.select(".x-axis").call(d3.axisBottom(newX));
+                    barSvg.select(".y-axis").call(d3.axisLeft(newY));
+                }
+            }
             function renderComparisonView() {
                 svg.selectAll("*").remove();
 
