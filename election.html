@@ -274,6 +274,20 @@
             margin-top: 40px;
             width: 100%;
         }
+        .explanation {
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+}
+
+.explanation p {
+    margin: 0;
+}
         
     </style>
 </head>
@@ -284,10 +298,12 @@
         <a href="index.html" class="back-button ">Back to Home</a>
     </header>
     <div class="tab-container">
+        
         <div class="tab active-tab" data-map="vote-difference">Vote Difference</div>
         <div class="tab" data-map="dem-vote">Democratic Votes</div>
         <div class="tab" data-map="rep-vote">Republican Votes</div>
     </div>
+    <p>This interactive map displays election results by county. Use the tabs above to switch between vote difference, Democratic votes, and Republican votes. Click on a county to zoom in and view detailed population data.</p>
     <div class="container">
         <div id="filter-container">
             <div id="comparison-container">
@@ -295,6 +311,7 @@
                 <select id="state-select">
                     <option value="">Select a state</option>
                 </select>
+                <p></p>
                 <select id="county-select-1">
                     <option value="">Select first county</option>
                 </select>
@@ -302,7 +319,7 @@
                     <option value="">Select second county</option>
                 </select>
                 <button id="compare-button">Compare</button>
-                <div id="comparison-result"></div>
+                
             </div>
             <h3 style="text-align: center;">Filter by Vote Difference</h3>
             <ul id="vote-thresholds"></ul>
@@ -524,9 +541,8 @@
                 y.domain([0, d3.max(barData, d => d.value)]);
             
                 const colorScale = d3.scaleOrdinal()
-                    .domain(barData.map(d => d.label))
-                    .range(["#4CAF50", "#2196F3", "#FFC107", "#FF5722", "#9C27B0", "#795548", "#607D8B", "#E91E63", "#00BCD4"]);
-            
+    .domain(barData.map(d => d.label))
+    .range(["#002868", "#4CAF50", "#FFC107", "#FF5722", "#9C27B0", "#795548", "#607D8B", "#E91E63"]);
                 const tooltip = d3.select("#tooltip");
             
                 barSvg.selectAll(".bar")
@@ -541,48 +557,48 @@
                     .on("mouseover", function(event, d) {
                         d3.select(this).transition()
                             .duration(200)
-                            .attr("fill", "#ff7f0e");
-            
                         tooltip.transition()
                             .duration(200)
                             .style("opacity", .9);
-                        tooltip.html(`${d.label}: ${d.value.toLocaleString()}`)
+                        tooltip.html(`<div class="tooltip-box">${d.label}: ${d.value.toLocaleString()}</div>`)
                             .style("left", (event.pageX + 10) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
-                    .on("mouseout", function(d) {
+                    .on("mouseout", function(event, d) {
                         d3.select(this).transition()
                             .duration(200)
                             .attr("fill", colorScale(d.label));
-            
                         tooltip.transition()
                             .duration(500)
                             .style("opacity", 0);
-                    })
-                    .on("click", function(event, d) {
-                        console.log(`Clicked on ${d.label} with value ${d.value}`);
-                        // You can add more functionality here, like updating other parts of your page
                     })
                     .transition()
                     .duration(1000)
                     .attr("y", d => y(d.value))
                     .attr("height", d => barHeight - y(d.value));
             
-                barSvg.append("g")
+                    barSvg.append("g")
                     .attr("transform", `translate(0,${barHeight})`)
                     .call(d3.axisBottom(x))
                     .selectAll("text")
                     .attr("transform", "rotate(-45)")
-                    .style("text-anchor", "end");
-            
+                    .style("text-anchor", "end")
+                    .style("font-size", "12px")
+                    .style("fill", "#333");
+                
                 barSvg.append("g")
-                    .call(d3.axisLeft(y));
+                    .call(d3.axisLeft(y))
+                    .selectAll("text")
+                    .style("font-size", "12px")
+                    .style("fill", "#333");
             
-                barSvg.append("text")
+                    barSvg.append("text")
                     .attr("x", barWidth / 2)
                     .attr("y", 0 - (margin.top / 2))
                     .attr("text-anchor", "middle")
-                    .style("font-size", "16px")
+                    .style("font-size", "18px")
+                    .style("fill", "#002868")
+                    .style("font-weight", "bold")
                     .text(`Population Data for ${countyNames.get(countyFips)} (${countyData.year})`);
             
                 // Add zoom functionality
@@ -595,12 +611,10 @@
                 function zoomed(event) {
                     const newX = event.transform.rescaleX(x);
                     const newY = event.transform.rescaleY(y);
-            
                     barSvg.selectAll(".bar")
                         .attr("x", d => newX(d.label))
                         .attr("y", d => newY(d.value))
                         .attr("height", d => barHeight - newY(d.value));
-            
                     barSvg.select(".x-axis").call(d3.axisBottom(newX));
                     barSvg.select(".y-axis").call(d3.axisLeft(newY));
                 }
@@ -719,6 +733,7 @@
             d3.select("#clear-filters").on("click", function() {
                 comparisonMode = false;
                 selectedThreshold = null;
+                d3.select("#state-select").property("value", "");
                 d3.select("#county-select-1").property("value", "");
                 d3.select("#county-select-2").property("value", "");
                 d3.select("#comparison-result").html("");
