@@ -16,6 +16,13 @@
             padding: 0;
         }
 
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align:center;
+            padding: 0;
+        }
         header {
             background-color: #002868;
             color: white;
@@ -274,21 +281,7 @@
             margin-top: 40px;
             width: 100%;
         }
-        .explanation {
-    background-color: #f8f8f8;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 10px;
-    margin: 10px 0;
-    font-size: 14px;
-    line-height: 1.4;
-    color: #333;
-}
-
-.explanation p {
-    margin: 0;
-}
-        
+              
     </style>
 </head>
 
@@ -303,8 +296,14 @@
         <div class="tab" data-map="dem-vote">Democratic Votes</div>
         <div class="tab" data-map="rep-vote">Republican Votes</div>
     </div>
-    <p>This interactive map displays election results by county. Use the tabs above to switch between vote difference, Democratic votes, and Republican votes. Click on a county to zoom in and view detailed population data.</p>
-    <div class="container">
+    <p>
+        Step into the story of the 2020 election with this dynamic interactive map! Dive into the numbers and uncover the big picture with visualizations designed to tell the story behind the votes. Switch between tabs to explore:
+
+<li>Vote Difference: See the margin of victory in each county, highlighting where races were close or decisive.</li>
+<li>Democratic Votes: Visualize the concentration of blue votes, showcasing strongholds and shifts in key areas.</li>
+<li>Republican Votes: Track the red wave across the map, pinpointing areas of high GOP support and emerging trends.</li>
+Curious about what’s happening under the surface? Click on any county to zoom in and reveal detailed population insights, including voter turnout,poverty rates, and racial demographics that may have influenced the results. Watch as the story unfolds visually, helping you connect the dots between raw data and the forces driving change.
+    </p>    <div class="container">
         <div id="filter-container">
             <div id="comparison-container">
                 <h3 style="text-align: center;">Compare Counties</h3>
@@ -323,6 +322,11 @@
             </div>
             <h3 style="text-align: center;">Filter by Vote Difference</h3>
             <ul id="vote-thresholds"></ul>
+            <div id="filter-container">
+                <h3 style="text-align: center;">Filter by Vote Difference</h3>
+<input type="range" id="vote-difference-slider" min="-100" max="100" value="0" step="1">
+<p id="slider-value">Vote Difference: 0%</p>
+            </div>
             <div id="clear-filters">Clear Filters</div>
             <button id="reset-zoom">Reset Zoom</button>
         </div>
@@ -405,10 +409,13 @@
                     const diff = voteDifferences.get(countyFips) || 0;
 
                     if (selectedThreshold !== null) {
-                        if (Math.abs(diff) <= Math.abs(selectedThreshold)) {
-                        return "#e0e0e0"; // Gray out counties within the threshold
+                        const diff = voteDifferences.get(countyFips) || 0;
+                        if (selectedThreshold >= 0 && diff < selectedThreshold) {
+                          return "#e0e0e0"; // Gray out counties below the positive threshold
+                        } else if (selectedThreshold < 0 && diff > selectedThreshold) {
+                          return "#e0e0e0"; // Gray out counties above the negative threshold
                         }
-                    }
+                      }
 
                     if (type === "vote-difference") {
                         return diff > 0 ? colorScales["rep-majority"](repVote) : colorScales["dem-majority"](demVote);
@@ -501,7 +508,14 @@
                 d3.select("#county-select-1").html('<option value="">Select first county</option>' + countyOptions);
                 d3.select("#county-select-2").html('<option value="">Select second county</option>' + countyOptions);
             }
-
+            function updateSlider() {
+                const sliderValue = d3.select("#vote-difference-slider").property("value");
+                d3.select("#slider-value").text(`Vote Difference: ${sliderValue}%`);
+                selectedThreshold = sliderValue / 100; // Convert percentage to decimal
+                updateMap(currentMapType);
+              }
+              
+              d3.select("#vote-difference-slider").on("input", updateSlider);
             function renderBarGraph(countyFips) {
                 const countyData = demographicData.find(d => d.fips === countyFips);
                 if (!countyData) return;
