@@ -175,20 +175,95 @@
         const width = 960, height = 600;
         const svg = d3.select("#choropleth").attr("width", width).attr("height", height);
 
+        const fipCodes = {
+            "01": "AL",
+            "02": "AK",
+            "04": "AZ",
+            "05": "AR",
+            "06": "CA",
+            "08": "CO",
+            "09": "CT",
+            "10": "DE",
+            "11": "DC",
+            "12": "FL",
+            "13": "GA",
+            "15": "HI",
+            "16": "ID",
+            "17": "IL",
+            "18": "IN",
+            "19": "IA",
+            "20": "KS",
+            "21": "KY",
+            "22": "LA",
+            "23": "ME",
+            "24": "MD",
+            "25": "MA",
+            "26": "MI",
+            "27": "MN",
+            "28": "MS",
+            "29": "MO",
+            "30": "MT",
+            "31": "NE",
+            "32": "NV",
+            "33": "NH",
+            "34": "NJ",
+            "35": "NM",
+            "36": "NY",
+            "37": "NC",
+            "38": "ND",
+            "39": "OH",
+            "40": "OK",
+            "41": "OR",
+            "42": "PA",
+            "44": "RI",
+            "45": "SC",
+            "46": "SD",
+            "47": "TN",
+            "48": "TX",
+            "49": "UT",
+            "50": "VT",
+            "51": "VA",
+            "53": "WA",
+            "54": "WV",
+            "55": "WI",
+            "56": "WY"
+        };
+
+
+
         Promise.all([
             d3.json("data/counties-10m.json"),
             d3.csv("data/polling_places.csv")
         ]).then(([topoData, pollingData]) => {
 
+            function getLocaleKey(d) {
+                // The first 2 digits of county ids correspond to the state of the county
+                const state = fipCodes[d.id.slice(0, 2)];
+                return `${d.properties.name},${state}`;
+            }
+
             const counties = topojson.feature(topoData, topoData.objects.counties);
-            const locationCounts = d3.rollup(pollingData, v => v.length, d => d.county_name);
+            const groupedData = d3.group(pollingData, d => `${d.county_name},${d.state}`);
+
+            const locationCounts = new Map(
+                Array.from(groupedData, ([locale, value]) => {
+                    if (locale.split(",")[0] === "NA") {
+                        return [locale, 0];
+                    }
+                    let uniqueValues = new Set(value.map(v => JSON.stringify(v)))
+                    return [locale, uniqueValues.size];
+                })
+            );
+
             const countsArray = Array.from(locationCounts.values());
-            const colors = ["#ffd27f", "#66c2a4", "#238bba", "#1d91c0", "#0c2c84"];
+            const colors = ["#ffd27f", "#66c2a4", "#238bba", "#185C9F", "#0c2c84"];
+            const zeroColor = "#f0f0f0"
             const colorScale = d3.scaleQuantile().domain(countsArray).range(colors);
 
             const projection = d3.geoAlbersUsa().fitSize([width, height], counties);
             const path = d3.geoPath().projection(projection);
             const tooltip = d3.select("#tooltip");
+            const fullColorScale = (c) => c !== 0 ? colorScale(c) : zeroColor;
 
             svg.selectAll("path")
                 .data(counties.features)
@@ -196,14 +271,13 @@
                 .attr("d", path)
                 .attr("class", "county")
                 .attr("fill", d => {
-                    const count = locationCounts.get(d.properties.name) || 0;
-                    return colorScale(count);
+                    const count = locationCounts.get(getLocaleKey(d)) || 0;
+                    return fullColorScale(count);
                 })
                 .on("mouseover", function (event, d) {
-                    const countyName = d.properties.name;
-                    const count = locationCounts.get(countyName) || 0;
+                    const count = locationCounts.get(getLocaleKey(d)) || 0;
                     tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`<div class="tooltip-box"><strong>${countyName}</strong><br>Polling Locations: ${count}</div>`)
+                    tooltip.html(`<div class="tooltip-box"><strong>${d.properties.name}</strong><br>Polling Locations: ${count}</div>`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 28) + "px");
                     d3.select(this).attr("stroke", "black").attr("stroke-width", 2).attr("fill-opacity", 0.5);
@@ -238,14 +312,14 @@
                     .call(zoom.transform, d3.zoomIdentity); // Reset to original zoom level
             });
 
-            const thresholds = colorScale.quantiles();
+            const thresholds = [...colorScale.quantiles(), Math.max(...colorScale.domain()) + 1];
             const ul = d3.select("#polling-thresholds");
 
             ul.selectAll("li")
                 .data(thresholds)
                 .enter()
                 .append("li")
-                .text(threshold => `Up to ${d3.format(",.0f")(threshold)} polling locations`)
+                .text((threshold, i) => i !== thresholds.length - 1 ? `Up to ${d3.format(",.0f")(threshold)} polling locations` : `At least ${Math.ceil(thresholds[i - 1])} polling locations`)
                 .style("color", (d, i) => colors[i])
                 .on("click", function (event, threshold) {
                     d3.select(this).classed("selected", !d3.select(this).classed("selected"));
@@ -254,8 +328,8 @@
 
             function highlightCounties(selectedThresholds) {
                 svg.selectAll("path").attr("fill", d => {
-                    const count = locationCounts.get(d.properties.name) || 0;
-                    return selectedThresholds.some(range => count < range) ? colorScale(count) : "#f0f0f0";
+                    const count = locationCounts.get(getLocaleKey(d)) || 0;
+                    return selectedThresholds.some(range => count < range) ? fullColorScale(count) : "#f0f0f0";
                 });
             }
 
@@ -265,7 +339,7 @@
 
             d3.select("#clear-filters").on("click", () => {
                 d3.selectAll("#polling-thresholds li").classed("selected", false);
-                svg.selectAll("path").attr("fill", d => colorScale(locationCounts.get(d.properties.name) || 0));
+                svg.selectAll("path").attr("fill", d => fullColorScale(locationCounts.get(getLocaleKey(d)) || 0));
             });
             d3.select("#reset-zoom").on("click", () => {
                 svg.transition()
