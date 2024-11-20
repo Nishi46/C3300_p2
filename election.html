@@ -8,16 +8,10 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f8ff;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
+
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Times New Roman', Times, serif;
             background-color: #f0f8ff;
             color: #333;
             text-align:center;
@@ -297,12 +291,12 @@
         <div class="tab" data-map="rep-vote">Republican Votes</div>
     </div>
     <p>
-        Step into the story of the 2020 election with this dynamic interactive map! Dive into the numbers and uncover the big picture with visualizations designed to tell the story behind the votes. Switch between tabs to explore:
-
-<li>Vote Difference: See the margin of victory in each county, highlighting where races were close or decisive.</li>
-<li>Democratic Votes: Visualize the concentration of blue votes, showcasing strongholds and shifts in key areas.</li>
-<li>Republican Votes: Track the red wave across the map, pinpointing areas of high GOP support and emerging trends.</li>
-Curious about what’s happening under the surface? Click on any county to zoom in and reveal detailed population insights, including voter turnout,poverty rates, and racial demographics that may have influenced the results. Watch as the story unfolds visually, helping you connect the dots between raw data and the forces driving change.
+    <strong> into the story of the 2020 election with this dynamic interactive map! Dive into the numbers and uncover the big picture with visualizations designed to tell the story behind the votes. Switch between tabs to explore:</strong>
+    </p>
+<li><strong>Vote Difference: </strong> See the margin of victory in each county, highlighting where races were close or decisive.</li>
+<li><strong>Democratic Votes: </strong> Visualize the concentration of blue votes, showcasing strongholds and shifts in key areas.</li>
+<li><strong>Republican Votes: </strong> Track the red wave across the map, pinpointing areas of high GOP support and emerging trends.</li>
+<p><strong>Curious about what’s happening under the surface? Click on any county to zoom in and reveal detailed population insights. After you click, scroll down to see a bar chart with an in-depth exploration of the population demographics. Watch as the story unfolds visually, helping you connect the dots between raw data and the forces driving change.</strong>
     </p>    <div class="container">
         <div id="filter-container">
             <div id="comparison-container">
@@ -339,6 +333,7 @@ Curious about what’s happening under the surface? Click on any county to zoom 
         </div>
        
     </div>
+    <p></p>
     <div id="bar-graph-container"></div>
     <div class="tooltip" id="tooltip"></div>
     <script>
@@ -411,9 +406,9 @@ Curious about what’s happening under the surface? Click on any county to zoom 
                     if (selectedThreshold !== null) {
                         const diff = voteDifferences.get(countyFips) || 0;
                         if (selectedThreshold >= 0 && diff < selectedThreshold) {
-                          return "#e0e0e0"; // Gray out counties below the positive threshold
+                          return "#e0e0e0"; 
                         } else if (selectedThreshold < 0 && diff > selectedThreshold) {
-                          return "#e0e0e0"; // Gray out counties above the negative threshold
+                          return "#e0e0e0"; 
                         }
                       }
 
